@@ -1,5 +1,5 @@
 <?php
-class Main
+class Main extends Ncurses
 {
     /**
      * Main window
@@ -8,22 +8,16 @@ class Main
     protected   $wMain = null;
     
     /**
-     * Uow window
-     * @var Window
+     * Left panel window
+     * @var Listbox
      */
-    protected $wUows   = null;
+    protected $wLPanel   = null;
     
     /**
-     * Gear window
-     * @var Window
+     * Right panel window
+     * @var Listbox
      */
-    protected $wGears  = null;
-    
-    /**
-     * Pids window
-     * @var Window
-     */
-    protected $wPids    = null;
+    protected $wRPanel  = null;
 
     /**
      * Cursor position
@@ -31,38 +25,27 @@ class Main
      */
     private     $cursor = null;
     
-    
-    
-    private $uows = array(
-                            'uow1',
-                            'uow2',
-                            'uow3',
-                            'uow4',
-                            'uow5',
-                            'uow6',
-                        );
-
-    private $gears = array(
-                            'UserKeeper',
-                            'ManyMaker',
-                            'RedisSaver',
-                            'UnixTools',
-                            'Album',
-                            'AlbumPhoto'
-                        );
-    
     /**
      * Construct
      */
-    public function __construct() 
+    public function start()
     {
         $this->wMain = new Window();
         $this->cursor = new Cursor(0, 0, false);
         ncurses_keypad($this->wMain->getWindow(), true);
         ncurses_noecho();
-        
+
+        $this->wMain->getMaxYX($y, $x);
+        $this->wMain->border();
+
+        $this->wLPanel = new Listbox($y - 2, $x / 2, 1, 1);
+        $this->wLPanel->border();
+        $this->wRPanel = new Listbox( $y - 2 , ($x / 2) - 2, 1, ($x / 2) + 2);
+        $this->wRPanel->border();
+
         $this->redraw();
         $this->processing();
+
     }
         
     /**
@@ -70,23 +53,20 @@ class Main
      */
     public function redraw()
     {
-        $this->wMain->getMaxYX($y, $x);
-        $this->wMain->border();
         $this->wMain->refresh();
 
-        $this->wUows = new Window($y - 2, $x / 2, 1, 1);
-        $this->wUows->border();
-        
         $current = ($this->cursor->getX() == 0) ?  $this->cursor->getY() : null;
-        $this->wUows->listbox( $this->uows, $current );
-        $this->wUows->refresh();
 
-        $this->wGears = new Window( $y - 2 , ($x / 2) - 2, 1, ($x / 2) + 2);
-        $this->wGears->border();
-        
+        $this->wLPanel->setItems(FS::getList(Conf::get('lpath')));
+        $this->wLPanel->drawList( $current );
+        $this->wLPanel->refresh();
+
         $current = ($this->cursor->getX() == 1) ?  $this->cursor->getY() : null;
-        $this->wGears->listbox($this->gears, $current);
-        $this->wGears->refresh();        
+        $this->wRPanel->setItems(FS::getList(Conf::get('rpath')));
+        $this->wRPanel->drawList( $current );
+        $this->wRPanel->refresh();
+
+
     }
     
     /**
@@ -94,50 +74,62 @@ class Main
      */
     public function processing()
     {
-        do {
+        do
+        {
             $k = ncurses_wgetch($this->wMain->getWindow());
-            if($k == XCURSES_KEY_ESC) 
+            if( $k == self::XCURSES_KEY_ESC )
             {
                 ncurses_end();
                 exit();
             } 
-            elseif ($k == NCURSES_KEY_UP)
+            elseif( $k == NCURSES_KEY_UP )
             {
                 $this->moveCursor(0, -1);
             }
-            elseif ($k == NCURSES_KEY_DOWN)
+            elseif( $k == NCURSES_KEY_DOWN )
             {
                 $this->moveCursor(0, 1);
             }
-            elseif ($k == NCURSES_KEY_LEFT)
+            elseif( $k == NCURSES_KEY_LEFT )
             {
                 $this->moveCursor(-1, 0);
             }
-            elseif ($k == NCURSES_KEY_RIGHT)
+            elseif( $k == NCURSES_KEY_RIGHT )
             {
                 $this->moveCursor(1, 0);
+            }
+            elseif( $k == self::XCURSES_KEY_TAB )
+            {
+                $this->moveCursor($this->cursor->getX() ? -1 : 1, 0);
+            }
+            elseif( $k == self::XCURSES_KEY_LF)
+            {
+                $this->cd();
             }
             else 
             {
                 echo $k;
             }
             $this->redraw();
-        } while(1);
+        }
+        while(1);
     }
-    
+
+    private function cd ()
+    {
+        $items = $this->cursor->getWindow()->getItems();
+    }
+
     /**
-     * Move cursor, if avaliable
+     * Move cursor, if available
      * @param int $offsetX
      * @param int $offsetY 
      */
     private function moveCursor($offsetX, $offsetY)
     {
         $minX = 0;
-        $maxX = 2;
-        
-        $minY = null;
-        $maxY = 10;
-        
+        $maxX = 1;
+
         if ( ( $offsetX + $this->cursor->getX() ) > $maxX )
         {
             $x = $maxX;
@@ -150,7 +142,20 @@ class Main
         {
             $x = (int) ( $offsetX + $this->cursor->getX() );
         }
-        
+
+        $minY = null;
+
+        if ( $x == 0 )
+        {
+            $this->cursor->setWindow($this->wLPanel);
+        }
+        else
+        {
+            $this->cursor->setWindow($this->wLPanel);
+        }
+
+        $maxY = count( $this->cursor->getWindow()->getItems() ) - 1;
+
         if ( ( $offsetY + $this->cursor->getY() ) > $maxY )
         {
             $y = $maxY;
@@ -166,4 +171,24 @@ class Main
         
         $this->cursor->setPosition($x, $y);
     }
+
+    public function __destruct()
+    {
+        Conf::save();
+        parent::__destruct();
+    }
+
+    public static function _debug()
+    {
+        $msg = '';
+
+        foreach(func_get_args() as $arg)
+        {
+            $msg .= var_export($arg, true) . PHP_EOL;
+        }
+        
+        file_put_contents(__DIR__ . '/../error.log', $msg,  FILE_APPEND);
+    }
+
+
 }

@@ -6,7 +6,16 @@ class Window
     const BORDER_STYLE_SOLID    = 1; // ┐
     const BORDER_STYLE_DOUBLE   = 2; // ╗
     const BORDER_STYLE_BLOCK    = 3; // ■
-    
+
+    /**
+     * Create window
+     *
+     * @param int $rows
+     * @param int $cols
+     * @param int $y
+     * @param int $x
+     * @return void
+     */
     public function __construct($rows = 0, $cols = 0, $y = 0, $x = 0) 
     {
         $this->window = ncurses_newwin($rows, $cols, $y, $x);
@@ -24,13 +33,15 @@ class Window
     
     public function getMaxX()
     {
-        ncurses_getmaxyx($this->window, $y = null, $x = null);
+        $x = $y = null;
+        ncurses_getmaxyx($this->window, $y, $x);
         return $x;
     }
     
     public function getMaxY()
     {
-        ncurses_getmaxyx($this->window, $y = null, $x = null);
+        $x = $y = null;
+        ncurses_getmaxyx($this->window, $y, $x);
         return $y;
     }
     
@@ -53,33 +64,9 @@ class Window
 //            $this->border(ord('║'), ord('║'), ord('═'), ord('═'), ord('╔'), ord('╗'), ord('╚'), ord('╝'));
         }
     }
-    
+
     /**
-     * Draw list items
-     * 
-     * @param array $items
-     * @param int $select 
-     */
-    public function listbox(array $items = array(), $current = null)
-    {
-        for ($i = 0; $i < count($items); $i++)
-        {
-            if ($i === $current) 
-            {
-                ncurses_wattron($this->getWindow(), NCURSES_A_REVERSE);
-            }
-            
-            ncurses_mvwaddstr($this->getWindow(), $i+1, 1, $items[$i]);
-            
-            if ($i === $current) 
-            {
-                ncurses_wattroff($this->getWindow(), NCURSES_A_REVERSE);
-            }
-        }
-    }
-    
-    /**
-     * Refrash (redraw) window
+     * Refresh (redraw) window
      */
     public function refresh()
     {

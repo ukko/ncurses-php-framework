@@ -17,6 +17,13 @@ class Cursor
      * @var bool
      */
     protected $visible  = null;
+
+    /**
+     * Store window
+     *
+     * @var Window
+     */
+    protected $window = null;
     
     /**
      * Construct
@@ -95,5 +102,23 @@ class Cursor
         ncurses_curs_set((int)$visible);
         $this->visible = $visible;
     }
-    
+
+    /**
+     * Set window
+     *
+     * @param Window $window
+     * @return void
+     */
+    public function setWindow( $window )
+    {
+       $this->window = $window;
+    }
+
+    /**
+     * @return Window
+     */
+    public function getWindow()
+    {
+        return $this->window;
+    }
 }
