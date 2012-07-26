@@ -6,13 +6,13 @@ class Main extends Ncurses
      * @var Window
      */
     protected   $wMain = null;
-    
+
     /**
      * Left panel window
      * @var Listbox
      */
     protected $wLPanel   = null;
-    
+
     /**
      * Right panel window
      * @var Listbox
@@ -24,7 +24,7 @@ class Main extends Ncurses
      * @var Cursor
      */
     private     $cursor = null;
-    
+
     /**
      * Construct
      */
@@ -36,23 +36,23 @@ class Main extends Ncurses
         ncurses_noecho();
 
         $this->wMain->getMaxYX($y, $x);
-        $this->wMain->border();
-
-        $this->wLPanel = new Listbox($y - 2, $x / 2, 1, 1);
-        $this->wLPanel->border();
-        $this->wRPanel = new Listbox( $y - 2 , ($x / 2) - 2, 1, ($x / 2) + 2);
-        $this->wRPanel->border();
+        $this->wLPanel = new Listbox( $this->wMain, $y - 2, ($x / 2) + 1, 1, 1 );
+        $this->wRPanel = new Listbox( $this->wMain,  $y - 2 , ($x / 2) - 2, 1, ($x / 2) + 2 );
+        Main::setFocus($this->wLPanel->getWindow());
 
         $this->redraw();
         $this->processing();
 
     }
-        
+
     /**
      * Redraw screen
      */
     public function redraw()
     {
+        $this->wLPanel->setBorder();
+        $this->wRPanel->setBorder();
+        $this->wMain->setBorder();
         $this->wMain->refresh();
 
         $current = ($this->cursor->getX() == 0) ?  $this->cursor->getY() : null;
@@ -66,9 +66,8 @@ class Main extends Ncurses
         $this->wRPanel->drawList( $current );
         $this->wRPanel->refresh();
 
-
     }
-    
+
     /**
      * Processing press keys
      */
@@ -81,7 +80,7 @@ class Main extends Ncurses
             {
                 ncurses_end();
                 exit();
-            } 
+            }
             elseif( $k == NCURSES_KEY_UP )
             {
                 $this->moveCursor(0, -1);
@@ -104,12 +103,15 @@ class Main extends Ncurses
             }
             elseif( $k == self::XCURSES_KEY_LF)
             {
-                $this->cd();
+                $text = 'Это длинное текстовое сообщение говорящее о всякой фигне, но самое главное не ясно будет ли поддержка русского языка';
+                $title = 'Внимание!';
+                Message::box($this->wMain, $text, $title);
             }
-            else 
+            else
             {
                 echo $k;
             }
+            Main::_debug('Main');
             $this->redraw();
         }
         while(1);
@@ -123,7 +125,7 @@ class Main extends Ncurses
     /**
      * Move cursor, if available
      * @param int $offsetX
-     * @param int $offsetY 
+     * @param int $offsetY
      */
     private function moveCursor($offsetX, $offsetY)
     {
@@ -133,12 +135,12 @@ class Main extends Ncurses
         if ( ( $offsetX + $this->cursor->getX() ) > $maxX )
         {
             $x = $maxX;
-        } 
+        }
         elseif( ( $offsetX + $this->cursor->getX() ) < $minX )
         {
             $x = $minX;
-        } 
-        else 
+        }
+        else
         {
             $x = (int) ( $offsetX + $this->cursor->getX() );
         }
@@ -147,11 +149,13 @@ class Main extends Ncurses
 
         if ( $x == 0 )
         {
+            Main::setFocus($this->wLPanel);
             $this->cursor->setWindow($this->wLPanel);
         }
         else
         {
-            $this->cursor->setWindow($this->wLPanel);
+            Main::setFocus($this->wRPanel);
+            $this->cursor->setWindow($this->wRPanel);
         }
 
         $maxY = count( $this->cursor->getWindow()->getItems() ) - 1;
@@ -168,7 +172,8 @@ class Main extends Ncurses
         {
             $y = (int) ( ($offsetY + $this->cursor->getY() ) );
         }
-        
+        Main::_debug($x, $y);
+
         $this->cursor->setPosition($x, $y);
     }
 
@@ -186,8 +191,8 @@ class Main extends Ncurses
         {
             $msg .= var_export($arg, true) . PHP_EOL;
         }
-        
-        file_put_contents(__DIR__ . '/../error.log', $msg,  FILE_APPEND);
+
+        file_put_contents(__DIR__ . '/../debug.log', $msg,  FILE_APPEND);
     }
 
 

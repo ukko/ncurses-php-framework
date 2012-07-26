@@ -1,23 +1,52 @@
 <?php
+namespace NC;
+
 class Window
 {
+    /**
+     * @var \NC\Window
+     */
+    protected $parent = null;
+
     protected $window = null;
+
+    protected $childs = array();
+
+    /**
+     * @param \NC\Window $parent
+     */
+    public function setParent($parent)
+    {
+        $this->parent = $parent;
+    }
+
+    /**
+     * @return \NC\Window
+     */
+    public function getParent()
+    {
+        return $this->parent;
+    }
 
     /**
      * Create window
      *
-     * @param int $rows
-     * @param int $cols
-     * @param int $y
-     * @param int $x
-     * @return \Window
+     * @param   int $rows
+     * @param   int $cols
+     * @param   int $y
+     * @param   int $x
+     * @return  \NC\Window
      */
     public function __construct($rows = 0, $cols = 0, $y = 0, $x = 0)
     {
         $w = ncurses_newwin( $rows, $cols, $y, $x ) ;
-        Main::_debug(' ' . $w ,  $rows, $cols, $y, $x );
         $this->setWindow( ncurses_newwin( $rows, $cols, $y, $x ) );
-        Main::_debug(' ' . $w );
+    }
+
+    public function add( Window $child )
+    {
+        $this->childs[] = $child;
+        $child->setParent( $this->getWindow() );
     }
 
     public function getWindow()
@@ -65,7 +94,7 @@ class Window
     public function setBorder($left = 0, $right = 0, $top = 0, $bottom = 0, $tl_corner = 0, $tr_corner = 0, $bl_corner = 0, $br_corner = 0)
     {
         return ncurses_wborder($this->window, $left, $right, $top, $bottom,
-                $tl_corner, $tr_corner, $bl_corner, $br_corner);
+            $tl_corner, $tr_corner, $bl_corner, $br_corner);
     }
 
     /**
@@ -92,6 +121,10 @@ class Window
     public function refresh()
     {
         ncurses_wrefresh($this->getWindow());
-        Main::_debug('refresh');
+
+        foreach ( $this->childs as $child )
+        {
+            $child->refresh();
+        }
     }
 }
