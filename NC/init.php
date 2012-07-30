@@ -1,8 +1,29 @@
 <?php
+
+declare(ticks = 1);
+
 if ( ! posix_isatty(STDOUT)) {
     trigger_error('wrong terminal');
     exit;
 }
+
+function sig_handler($signo)
+{
+    switch ($signo)
+    {
+        case SIGINT:
+            ncurses_end();
+            exit('exit');
+        case SIGTERM:
+            ncurses_end();
+            exit('exit');
+        default:
+            // other
+    }
+}
+
+pcntl_signal(SIGTERM, 'sig_handler');
+pcntl_signal(SIGINT, 'sig_handler');
 
 function my_error_handler( $errno, $errstr, $errfile, $errline )
 {

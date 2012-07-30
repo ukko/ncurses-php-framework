@@ -6,11 +6,15 @@ class Window
     /**
      * @var \NC\Window
      */
-    protected $parent = null;
+    protected $parent   = null;
 
-    protected $window = null;
+    protected $window   = null;
 
-    protected $childs = array();
+    protected $childs   = array();
+
+    protected $title    = null;
+
+    protected $changed  = true;
 
     /**
      * @param \NC\Window $parent
@@ -28,6 +32,8 @@ class Window
         return $this->parent;
     }
 
+
+
     /**
      * Create window
      *
@@ -39,14 +45,17 @@ class Window
      */
     public function __construct($rows = 0, $cols = 0, $y = 0, $x = 0)
     {
-        $w = ncurses_newwin( $rows, $cols, $y, $x ) ;
         $this->setWindow( ncurses_newwin( $rows, $cols, $y, $x ) );
+
+        $this->setChanged( true );
     }
 
     public function add( Window $child )
     {
         $this->childs[] = $child;
         $child->setParent( $this->getWindow() );
+
+        $this->setChanged( true );
     }
 
     public function getWindow()
@@ -93,8 +102,13 @@ class Window
      */
     public function setBorder($left = 0, $right = 0, $top = 0, $bottom = 0, $tl_corner = 0, $tr_corner = 0, $bl_corner = 0, $br_corner = 0)
     {
-        return ncurses_wborder($this->window, $left, $right, $top, $bottom,
-            $tl_corner, $tr_corner, $bl_corner, $br_corner);
+        return ncurses_wborder(
+                                $this->window,
+                                $left, $right, $top, $bottom,
+                                $tl_corner, $tr_corner, $bl_corner, $br_corner
+                            );
+
+        $this->setChanged( true );
     }
 
     /**
@@ -105,14 +119,18 @@ class Window
      * @param   int     $background
      * @return void
      */
-    public function setColor($pair, $foreground, $background)
+    public function setColor($pair, $foreground = 0, $background = 0)
     {
         if ( ncurses_has_colors() )
         {
             ncurses_start_color();
-            ncurses_init_pair(1, $foreground, $background);
-            ncurses_color_set(1);
+            ncurses_init_pair($pair, $foreground, $background);
+            ncurses_wcolor_set($this->getWindow(), $pair);
         }
+
+        $this->setChanged( true );
+
+        return $pair;
     }
 
     /**
@@ -120,11 +138,45 @@ class Window
      */
     public function refresh()
     {
+        if ( ! $this->getChanged() )
+        {
+            return false;
+        }
+        else
+        {
+            $this->setChanged( false );
+        }
+
         ncurses_wrefresh($this->getWindow());
 
         foreach ( $this->childs as $child )
         {
             $child->refresh();
         }
+    }
+
+    public function setTitle($title)
+    {
+        $this->title = $title;
+        ncurses_wattron($this->getWindow(), NCURSES_A_BOLD);
+        ncurses_mvwaddstr( $this->getWindow(), 0, 2, ' ' . $title . ' ' );
+        ncurses_wattroff($this->getWindow(), NCURSES_A_BOLD);
+
+        $this->setChanged( true );
+    }
+
+    public function getTitle()
+    {
+        return $this->title;
+    }
+
+    public function setChanged($changed)
+    {
+        $this->changed = $changed;
+    }
+
+    public function getChanged()
+    {
+        return $this->changed;
     }
 }

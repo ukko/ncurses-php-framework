@@ -1,9 +1,9 @@
 <?php
 namespace NC;
 
-class MainWindow extends Window
+class StdWindow extends Window
 {
-    protected $window = null;
+    protected $window       = null;
 
     /**
      * Create window

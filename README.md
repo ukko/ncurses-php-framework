@@ -22,3 +22,4 @@ Features:
         - Radio
 
     - HotKeys
+    - Signals
